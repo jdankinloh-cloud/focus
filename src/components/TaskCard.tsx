@@ -32,10 +32,14 @@ const priorityConfig: Record<Task["priority"], { icon: ReactNode; label: string;
 function formatDeadline(dl: string | null): { text: string; urgent: boolean } {
   if (!dl) return { text: "Без срока", urgent: false };
   const d = new Date(dl);
+  if (isNaN(d.getTime())) return { text: "Неверная дата", urgent: false };
   const now = new Date();
   const diff = d.getTime() - now.getTime();
   if (diff < 0) {
-    const hours = Math.abs(Math.round(diff / 3600000));
+    const absDiff = Math.abs(diff);
+    const hours = Math.round(absDiff / 3600000);
+    const days = Math.round(absDiff / 86400000);
+    if (days >= 1) return { text: `-${days}д`, urgent: true };
     return { text: `-${hours}ч`, urgent: true };
   }
   if (diff < 3600000) return { text: `${Math.ceil(diff / 60000)} мин`, urgent: true };

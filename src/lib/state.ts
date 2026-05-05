@@ -37,13 +37,17 @@ export function saveState(state: StoredState): void {
 }
 
 export function createTask(partial: Partial<Task> & { title: string }): Task {
+  let deadline = partial.deadline || null;
+  if (deadline && !deadline.includes("+") && !deadline.endsWith("Z") && deadline.includes("T")) {
+    deadline = new Date(deadline).toISOString();
+  }
   return {
     id: uuidv4(),
     title: partial.title,
     description: partial.description || "",
     status: partial.status || "pending",
     priority: partial.priority || "medium",
-    deadline: partial.deadline || null,
+    deadline,
     startedAt: partial.startedAt || null,
     completedAt: partial.completedAt || null,
     report: partial.report || null,
