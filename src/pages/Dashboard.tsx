@@ -6,7 +6,7 @@ import QuickActions from "../components/QuickActions";
 import ReportModal from "../components/ReportModal";
 import SettingsModal from "../components/SettingsModal";
 import { useState } from "react";
-import { MessageCircle, LayoutDashboard, Plus, CheckCircle2, Clock, AlertTriangle, ListFilter } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Plus, CheckCircle2, Clock, AlertTriangle, ListFilter, Zap, X } from "lucide-react";
 
 type TaskFilter = "active" | "completed" | "overdue" | "all";
 
@@ -61,6 +61,7 @@ export default function Dashboard({
   const [reportTaskId, setReportTaskId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("active");
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const reportTask = tasks.find((t) => t.id === reportTaskId) || null;
 
   const efficiency = tasks.length
@@ -93,13 +94,71 @@ export default function Dashboard({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 </div>
-                <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-serif-display font-semibold tracking-tight">
+                <h1 className="text-[22px] sm:text-[36px] lg:text-[42px] font-serif-display font-semibold tracking-tight leading-tight">
                   {aiMode === "boss" ? "Время работать." : "Привет! Что сегодня?"}
                 </h1>
               </div>
-              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+              <span className="hidden sm:inline text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
                 {filterConfig[taskFilter].label} · {filteredTasks.length}
               </span>
+            </div>
+          </div>
+        )}
+
+        {activeView === "dashboard" && (
+          <div className="lg:hidden space-y-3 mb-4 animate-fade-up" style={{ animationDelay: "0.13s" }}>
+            <div className="flex items-end gap-3">
+              <p className="text-[48px] tracking-[-0.04em] leading-none">{efficiency}%</p>
+              <p className="text-xs text-gray-500 pb-2">Текущая эффективность</p>
+            </div>
+
+            <div className="bg-white rounded-[16px] p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2.5">
+                <h4 className="text-xs font-medium">Статистика дня</h4>
+                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Сегодня</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-base font-medium">{completedToday.length}</p>
+                  <p className="text-[10px] text-gray-500">Готово</p>
+                </div>
+                <div>
+                  <p className="text-base font-medium">{overdueTasks.length}</p>
+                  <p className="text-[10px] text-gray-500">Просрочено</p>
+                </div>
+                <div>
+                  <p className="text-base font-medium">{efficiency}%</p>
+                  <p className="text-[10px] text-gray-500">Эффект.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {(Object.keys(filterConfig) as TaskFilter[]).map((f) => {
+                const cfg = filterConfig[f];
+                const Icon = cfg.icon;
+                const count = f === "active" ? activeTasks.length
+                  : f === "completed" ? completedAll.length
+                  : f === "overdue" ? overdueTasks.length
+                  : activeTasks.length + completedAll.length + overdueTasks.length;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setTaskFilter(f)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 transition-all ${
+                      taskFilter === f
+                        ? "bg-black text-white"
+                        : "bg-white text-gray-600 shadow-sm"
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {cfg.label}
+                    <span className={`text-[10px] ${taskFilter === f ? "text-gray-300" : "text-gray-400"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -148,10 +207,17 @@ export default function Dashboard({
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-2 flex items-center justify-around z-40">
           <button
             onClick={() => setActiveView("dashboard")}
-            className={`flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-colors ${activeView === "dashboard" ? "text-black" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${activeView === "dashboard" ? "text-black" : "text-gray-400"}`}
           >
             <LayoutDashboard className="w-5 h-5" />
             <span className="text-[10px]">Задачи</span>
+          </button>
+          <button
+            onClick={() => setShowQuickActions(true)}
+            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-gray-400 transition-colors"
+          >
+            <Zap className="w-5 h-5" />
+            <span className="text-[10px]">Команды</span>
           </button>
           <button
             onClick={onAddTask}
@@ -161,12 +227,30 @@ export default function Dashboard({
           </button>
           <button
             onClick={() => setActiveView("chat")}
-            className={`flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-colors ${activeView === "chat" ? "text-black" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${activeView === "chat" ? "text-black" : "text-gray-400"}`}
           >
             <MessageCircle className="w-5 h-5" />
             <span className="text-[10px]">Чат</span>
           </button>
         </div>
+
+        {showQuickActions && (
+          <div className="lg:hidden fixed inset-0 z-50" onClick={() => setShowQuickActions(false)}>
+            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[24px] p-5 pb-8 animate-float-in" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs">⚡</span>
+                  <h3 className="text-base font-medium tracking-tight">Быстрые команды</h3>
+                </div>
+                <button onClick={() => setShowQuickActions(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+              <MobileQuickActions onAction={(text) => { onSendChat(text); setShowQuickActions(false); }} />
+            </div>
+          </div>
+        )}
 
         {reportTask && (
           <ReportModal
@@ -336,4 +420,33 @@ function CenterColumn({
 
 function RightColumn({ onAction }: { onAction: (text: string) => void }) {
   return <QuickActions onAction={onAction} />;
+}
+
+function MobileQuickActions({ onAction }: { onAction: (text: string) => void }) {
+  const actions = [
+    { label: "Добавь задачу на сегодня", icon: "📝" },
+    { label: "Что мне сейчас делать?", icon: "🎯" },
+    { label: "Режим работы 25/5", icon: "⏱" },
+    { label: "Стань начальником", icon: "👔" },
+    { label: "Стань напарником", icon: "🤝" },
+    { label: "Мой прогресс", icon: "📊" },
+  ];
+
+  return (
+    <div className="space-y-1.5">
+      {actions.map((a, i) => (
+        <button
+          key={i}
+          onClick={() => onAction(a.label)}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-gray-700 bg-gray-50 rounded-xl active:bg-gray-100 transition-colors"
+        >
+          <span className="text-base">{a.icon}</span>
+          <span className="flex-1">{a.label}</span>
+          <div className="w-5 h-5 bg-gray-700 rounded-full flex items-center justify-center">
+            <div className="w-0 h-0 border-l-[5px] border-l-white border-y-[3px] border-y-transparent ml-0.5" />
+          </div>
+        </button>
+      ))}
+    </div>
+  );
 }
