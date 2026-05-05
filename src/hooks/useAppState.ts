@@ -58,6 +58,7 @@ export function useAppState() {
   const [activeView, setActiveView] = useState<"dashboard" | "chat">("dashboard");
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [pendingTaskAction, setPendingTaskAction] = useState<Partial<Task> & { title: string } | null>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -159,6 +160,51 @@ export function useAppState() {
 
   const sendChatMessage = useCallback(
     async (text: string) => {
+      if (pendingTaskAction) {
+        const lower = text.toLowerCase().trim();
+        if (lower === "да" || lower === "yes" || lower === "ок" || lower === "ok" || lower === "давай" || lower === "создавай" || lower === "добавляй") {
+          const task = createTask(pendingTaskAction);
+          setTasks((prev) => [task, ...prev]);
+          setPendingTaskAction(null);
+          const confirmMsg = createChatMessage("assistant", `✅ Задача «${task.title}» добавлена!`);
+          setChatMessages((prev) => [...prev, confirmMsg]);
+          if (supabase) {
+            supabase.from("tasks").insert({
+              id: task.id, user_id: USER_ID, title: task.title,
+              description: task.description, status: task.status,
+              priority: task.priority, deadline: task.deadline,
+              category: task.category, estimated_minutes: task.estimatedMinutes,
+            }).then(({ error }) => { if (error) console.error("Supabase insert error:", error); });
+            supabase.from("chat_messages").insert({
+              id: confirmMsg.id, user_id: USER_ID, role: confirmMsg.role, content: confirmMsg.content,
+            }).then(({ error }) => { if (error) console.error("Supabase insert msg error:", error); });
+          }
+          const userMsg = createChatMessage("user", text);
+          setChatMessages((prev) => { const msgs = [...prev]; msgs.splice(msgs.length - 1, 0, userMsg); return msgs; });
+          if (supabase) {
+            supabase.from("chat_messages").insert({
+              id: userMsg.id, user_id: USER_ID, role: userMsg.role, content: userMsg.content,
+            }).then(({ error }) => { if (error) console.error("Supabase insert msg error:", error); });
+          }
+          return;
+        }
+        if (lower === "нет" || lower === "no" || lower === "отмена" || lower === "не надо" || lower === "неа") {
+          setPendingTaskAction(null);
+          const cancelMsg = createChatMessage("assistant", "Ок, отменил. Что ещё?");
+          setChatMessages((prev) => [...prev, cancelMsg]);
+          const userMsg = createChatMessage("user", text);
+          setChatMessages((prev) => { const msgs = [...prev]; msgs.splice(msgs.length - 1, 0, userMsg); return msgs; });
+          if (supabase) {
+            supabase.from("chat_messages").insert([
+              { id: userMsg.id, user_id: USER_ID, role: userMsg.role, content: userMsg.content },
+              { id: cancelMsg.id, user_id: USER_ID, role: cancelMsg.role, content: cancelMsg.content },
+            ]).then(({ error }) => { if (error) console.error("Supabase insert msg error:", error); });
+          }
+          return;
+        }
+        setPendingTaskAction(null);
+      }
+
       const userMsg = createChatMessage("user", text);
       setChatMessages((prev) => [...prev, userMsg]);
       setLoading(true);
@@ -197,15 +243,17 @@ export function useAppState() {
           switch (a.type || a.action) {
             case "create_task": {
               const t = a.task as Partial<Task> & { title: string };
-              const task = createTask(t);
-              setTasks((prev) => [task, ...prev]);
+              setPendingTaskAction(t);
+              const estMin = t.estimatedMinutes ? ` на ${t.estimatedMinutes} мин` : "";
+              const dlText = t.deadline ? `, дедлайн ${new Date(t.deadline).toLocaleString("ru-RU", { timeZone: "Europe/Moscow", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : "";
+              const prioText = t.priority === "high" ? ", срочно" : t.priority === "low" ? ", низкий приоритет" : "";
+              const confirmText = `Добавляем задачу «${t.title}»${estMin}${dlText}${prioText}.\n\nДа или Нет?`;
+              const confirmMsg = createChatMessage("assistant", confirmText);
+              setChatMessages((prev) => [...prev, confirmMsg]);
               if (supabase) {
-                supabase.from("tasks").insert({
-                  id: task.id, user_id: USER_ID, title: task.title,
-                  description: task.description, status: task.status,
-                  priority: task.priority, deadline: task.deadline,
-                  category: task.category, estimated_minutes: task.estimatedMinutes,
-                }).then(({ error }) => { if (error) console.error("Supabase insert error:", error); });
+                supabase.from("chat_messages").insert({
+                  id: confirmMsg.id, user_id: USER_ID, role: confirmMsg.role, content: confirmMsg.content,
+                }).then(({ error }) => { if (error) console.error("Supabase insert msg error:", error); });
               }
               break;
             }
@@ -237,7 +285,7 @@ export function useAppState() {
         setLoading(false);
       }
     },
-    [aiMode, modelId, tasks, chatMessages, updateTask]
+    [aiMode, modelId, tasks, chatMessages, updateTask, pendingTaskAction]
   );
 
   const reportTask = useCallback(

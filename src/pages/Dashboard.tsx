@@ -6,7 +6,7 @@ import QuickActions from "../components/QuickActions";
 import ReportModal from "../components/ReportModal";
 import SettingsModal from "../components/SettingsModal";
 import { useState } from "react";
-import { MessageCircle, LayoutDashboard, Plus, CheckCircle2, Clock, AlertTriangle, ListFilter, Zap, X } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Plus, CheckCircle2, Clock, AlertTriangle, ListFilter } from "lucide-react";
 
 type TaskFilter = "active" | "completed" | "overdue" | "all";
 
@@ -61,7 +61,6 @@ export default function Dashboard({
   const [reportTaskId, setReportTaskId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("active");
-  const [showQuickActions, setShowQuickActions] = useState(false);
   const reportTask = tasks.find((t) => t.id === reportTaskId) || null;
 
   const efficiency = tasks.length
@@ -204,20 +203,13 @@ export default function Dashboard({
           </div>
         </div>
 
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-2 flex items-center justify-around z-40">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-6 py-2 flex items-center justify-around z-40">
           <button
             onClick={() => setActiveView("dashboard")}
-            className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${activeView === "dashboard" ? "text-black" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-0.5 py-1 px-6 rounded-xl transition-colors ${activeView === "dashboard" ? "text-black" : "text-gray-400"}`}
           >
             <LayoutDashboard className="w-5 h-5" />
             <span className="text-[10px]">Задачи</span>
-          </button>
-          <button
-            onClick={() => setShowQuickActions(true)}
-            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-gray-400 transition-colors"
-          >
-            <Zap className="w-5 h-5" />
-            <span className="text-[10px]">Команды</span>
           </button>
           <button
             onClick={onAddTask}
@@ -227,30 +219,12 @@ export default function Dashboard({
           </button>
           <button
             onClick={() => setActiveView("chat")}
-            className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${activeView === "chat" ? "text-black" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-0.5 py-1 px-6 rounded-xl transition-colors ${activeView === "chat" ? "text-black" : "text-gray-400"}`}
           >
             <MessageCircle className="w-5 h-5" />
             <span className="text-[10px]">Чат</span>
           </button>
         </div>
-
-        {showQuickActions && (
-          <div className="lg:hidden fixed inset-0 z-50" onClick={() => setShowQuickActions(false)}>
-            <div className="absolute inset-0 bg-black/30" />
-            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[24px] p-5 pb-8 animate-float-in" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs">⚡</span>
-                  <h3 className="text-base font-medium tracking-tight">Быстрые команды</h3>
-                </div>
-                <button onClick={() => setShowQuickActions(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
-              <MobileQuickActions onAction={(text) => { onSendChat(text); setShowQuickActions(false); }} />
-            </div>
-          </div>
-        )}
 
         {reportTask && (
           <ReportModal
@@ -420,33 +394,4 @@ function CenterColumn({
 
 function RightColumn({ onAction }: { onAction: (text: string) => void }) {
   return <QuickActions onAction={onAction} />;
-}
-
-function MobileQuickActions({ onAction }: { onAction: (text: string) => void }) {
-  const actions = [
-    { label: "Добавь задачу на сегодня", icon: "📝" },
-    { label: "Что мне сейчас делать?", icon: "🎯" },
-    { label: "Режим работы 25/5", icon: "⏱" },
-    { label: "Стань начальником", icon: "👔" },
-    { label: "Стань напарником", icon: "🤝" },
-    { label: "Мой прогресс", icon: "📊" },
-  ];
-
-  return (
-    <div className="space-y-1.5">
-      {actions.map((a, i) => (
-        <button
-          key={i}
-          onClick={() => onAction(a.label)}
-          className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-gray-700 bg-gray-50 rounded-xl active:bg-gray-100 transition-colors"
-        >
-          <span className="text-base">{a.icon}</span>
-          <span className="flex-1">{a.label}</span>
-          <div className="w-5 h-5 bg-gray-700 rounded-full flex items-center justify-center">
-            <div className="w-0 h-0 border-l-[5px] border-l-white border-y-[3px] border-y-transparent ml-0.5" />
-          </div>
-        </button>
-      ))}
-    </div>
-  );
 }
