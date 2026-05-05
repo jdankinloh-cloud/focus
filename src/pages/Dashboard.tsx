@@ -25,7 +25,7 @@ interface DashboardProps {
   loading: boolean;
   onLogout: () => void;
   onSendChat: (text: string) => void;
-  onReport: (taskId: string, report: string) => void;
+  onReport: (taskId: string, report: string) => Promise<{ verdict: string; feedback: string } | null>;
   onStart: (taskId: string) => void;
   onDeleteTask: (id: string) => void;
   onAddTask: () => void;
